@@ -31,3 +31,7 @@ Each template is a self-contained directory with everything needed to bootstrap 
 
 - Docker and Docker Compose
 - [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox) (optional, for sandboxed Claude Code sessions)
+
+## Part of kmac-claude-kit
+
+This repo is one component of [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit), a toolkit for building software with Claude Code. See that repo for how claude-templates, [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox), and [claude-skills](https://github.com/kmacmcfarlane/claude-skills) fit together.
