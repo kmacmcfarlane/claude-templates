@@ -1,5 +1,5 @@
 schema_version: 1
-project: checkpoint-sampler
+project: local-web-app
 defaults:
   priority_order: "higher_is_more_important"
   done_field: "done"

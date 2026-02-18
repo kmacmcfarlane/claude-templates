@@ -1,4 +1,4 @@
-# checkpoint-sampler
+# Claude Code Project Templates
 
 Project templates for quick-starting new repos designed to work with [Claude Code](https://docs.anthropic.com/en/docs/claude-code).
 
