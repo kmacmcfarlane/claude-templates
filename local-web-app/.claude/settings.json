@@ -16,7 +16,6 @@
       "Bash(git merge:*)",
       "Bash(ls:*)",
       "Bash(make *)",
-      "Bash(make up:*)",
       "Bash(docker compose:*)",
 
       "Bash(tree:*)",
