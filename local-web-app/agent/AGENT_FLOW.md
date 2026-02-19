@@ -75,53 +75,53 @@ For the selected story, perform in order:
 ### 3.4 Implement incrementally
 - Apply changes in small, reviewable steps.
 - Maintain backend layering boundaries:
-    - internal/model for domain
-    - internal/service for business logic
-    - internal/store for persistence and provider clients
-    - internal/api for transport/goa glue
-    - internal/api/gen is generated and must not be edited
+  - internal/model for domain
+  - internal/service for business logic
+  - internal/store for persistence and provider clients
+  - internal/api for transport/goa glue
+  - internal/api/gen is generated and must not be edited
 - Maintain frontend/backend separation:
-    - frontend only calls backend API
-    - provider calls occur only in backend store/provider packages
+  - frontend only calls backend API
+  - provider calls occur only in backend store/provider packages
 - For features marked as stubs in the PRD:
-    - create/keep interfaces and return explicit "not implemented" errors
-    - do not add unofficial workarounds unless backlog explicitly changes PRD
+  - create/keep interfaces and return explicit "not implemented" errors
+  - do not add unofficial workarounds unless backlog explicitly changes PRD
 
 ### 3.5 Update and add tests
 - Encode acceptance criteria in tests.
 - Ensure tests do not send real messages:
-    - use dry-run and mocks/stubs
-    - no network calls in unit tests
+  - use dry-run and mocks/stubs
+  - no network calls in unit tests
 - Follow /agent/TEST_PRACTICES.md for structure, naming, and coverage expectations.
 
 ### 3.6 Run verification
 - Run the relevant test and lint commands (per Makefiles and CLAUDE.md).
 - Dev ergonomics targets must be maintained:
-    - FE watch tests: `npm run test:watch`
-    - BE watch tests: `ginkgo watch` (race where feasible)
+  - FE watch tests: `npm run test:watch`
+  - BE watch tests: `ginkgo watch` (race where feasible)
 - If tests fail:
-    - fix the failure and re-run
-    - do not disable or weaken tests to force green
+  - fix the failure and re-run
+  - do not disable or weaken tests to force green
 
 ### 3.7 Update artifacts
 - Update /CHANGELOG.md with a concise entry for this story under “Unreleased” (or current top section).
 - Update /agent/backlog.yaml:
-    - Set done=true only when Definition of Done (DoD) is satisfied.
-    - If blocked, record a concrete blocked_reason and stop.
-    - If partially complete but not done, keep done=false and add a note field if schema supports it.
-- Update /agent/QUESTIONS.md with any requirement questions
+  - Set done=true only when Definition of Done (DoD) is satisfied.
+  - If blocked, record a concrete blocked_reason and stop.
+  - If partially complete but not done, keep done=false and add a note field if schema supports it.
+- Are there questions that could help you decide if you are done or what to do? Update /agent/QUESTIONS.md with any requirement questions and trigger a discord notification via the MCP tool to get my attention. Also indicate that you have important questions in the chat output.
 - Update /agent/IDEAS.md with ideas for features that could enhance the application
 
 ### 3.8 Commit rules
 Default: commit when a story reaches DONE and the user has reviewed the changes. Wait for review before commiting.
 - Create a single commit per story unless the story explicitly requires multiple commits.
 - Commit message format:
-    - `story(<id>): <title>`
+  - `story(<id>): <title>`
 - The commit must include:
-    - code changes
-    - passing tests for primary acceptance criteria
-    - backlog.yaml updates
-    - changelog entry
+  - code changes
+  - passing tests for primary acceptance criteria
+  - backlog.yaml updates
+  - changelog entry
 
 ## 4) Definition of Done (DoD)
 
@@ -133,9 +133,9 @@ A story may be marked done=true only if all are true:
 5) /CHANGELOG.md updated with the story entry.
 6) Work committed with correct message format (unless story explicitly overrides).
 7) No scope violations:
-    - no generated code edits in internal/api/gen or **/mocks or inside node_modules or any other generated/external code
-    - no unofficial workarounds for stubbed features
-    - no secrets added to repo or logs
+  - no generated code edits in internal/api/gen or **/mocks or inside node_modules or any other generated/external code
+  - no unofficial workarounds for stubbed features
+  - no secrets added to repo or logs
 
 ## 5) Blocking rules
 
@@ -146,11 +146,11 @@ A story is BLOCKED when:
 When blocked:
 - Do not mark done=true.
 - Record blocked_reason with:
-    - what is blocked
-    - why it is blocked
-    - what decision/input is needed
-- Stop further implementation work for that story in the same cycle.
-- Add questions to /agent/QUESTIONS.md to get clarification and prompt the user to update /agent/PRD.md
+  - what is blocked
+  - why it is blocked
+  - what decision/input is needed
+- Update /agent/IDEAS.md with ideas for features that could enhance the application
+- Update /agent/backlog.yaml if stories now require eachother in a new way
 
 ## 6) Safety gates
 
