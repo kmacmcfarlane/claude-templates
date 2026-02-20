@@ -1,4 +1,4 @@
-.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-resume up down logs up-dev down-dev logs-dev test-frontend-watch test-backend-watch
+.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-resume up down logs up-dev down-dev logs-dev test-frontend test-frontend-watch test-backend test-backend-watch
 
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
@@ -38,8 +38,14 @@ down-dev:
 logs-dev:
 	$(COMPOSE_DEV) logs -f
 
+test-frontend:
+	$(COMPOSE_DEV) exec frontend npm run test
+
 test-frontend-watch:
 	$(COMPOSE_DEV) exec frontend npm run test:watch
 
+test-backend:
+	$(COMPOSE_DEV) exec backend ginkgo -r --cover --race ./internal/... ./cmd/...
+
 test-backend-watch:
-	$(COMPOSE_DEV) exec backend ginkgo watch -r --race ./internal/... ./cmd/...
+	$(COMPOSE_DEV) exec backend ginkgo watch -r --cover --race ./internal/... ./cmd/...
