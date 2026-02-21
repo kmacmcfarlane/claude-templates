@@ -117,14 +117,17 @@ Agents should use one-shot commands, not watch mode. Watch mode is a long-runnin
 - **Frontend verification**: `make test-frontend` or `cd frontend && npx vitest run`
 - **Do not use** `make test-backend-watch` or `make test-frontend-watch` — these never exit
 
-## 8) Change discipline
+## 8) Commit style
+- Do not add a `Co-Authored-By` trailer to commits. Attribution is disabled globally via `~/.claude/settings.json` (`"attribution": {"commit": "", "pr": ""}`).
+
+## 9) Change discipline
 - One story at a time (from /agent/backlog.yaml) per /agent/AGENT_FLOW.md.
 - Minimal diffs; no drive-by refactors or formatting churn.
 - Do not edit generated code under /backend/internal/api/gen.
 - Update /CHANGELOG.md per completed story.
 - Commit policy is defined in /agent/AGENT_FLOW.md (follow it exactly).
 
-## 9) When blocked
+## 10) When blocked
 If acceptance criteria cannot be met:
 - Do not mark the story done.
 - Record a concrete blocker note in /agent/backlog.yaml (or the location specified by AGENT_FLOW).
