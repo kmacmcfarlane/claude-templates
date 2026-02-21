@@ -1,4 +1,4 @@
-.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-resume up down logs up-dev down-dev logs-dev test-frontend test-frontend-watch test-backend test-backend-watch
+.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-once ralph-auto-resume ralph-auto-resume-once up down logs up-dev down-dev logs-dev test-frontend test-frontend-watch test-backend test-backend-watch
 
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
@@ -17,8 +17,16 @@ ralph-resume:
 ralph-auto:
 	claude-sandbox --ralph --dangerously-skip-permissions
 
+ralph-auto-once:
+	claude-sandbox --ralph --dangerously-skip-permissions --limit 1
+
+# make ralph-auto-resume ARGS="<resume id>"
 ralph-auto-resume:
-	claude-sandbox --ralph --dangerously-skip-permissions --resume
+	claude-sandbox --ralph --dangerously-skip-permissions --resume ${ARGS}
+
+# make ralph-auto-resume-once ARGS="<resume id>"
+ralph-auto-resume-once:
+	claude-sandbox --ralph --dangerously-skip-permissions --limit 1 --resume ${ARGS}
 
 up:
 	docker compose up -d --build
