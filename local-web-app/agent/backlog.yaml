@@ -1,18 +1,19 @@
-schema_version: 1
+schema_version: 2
 project: local-web-app
 defaults:
   priority_order: "higher_is_more_important"
-  done_field: "done"
+  status_field: "status"
   blocked_field: "blocked"
   blocked_reason_field: "blocked_reason"
+  review_feedback_field: "review_feedback"
+  requires_field: "requires"
 
 stories:
   - id: S-000
     title: "Architecture Planning"
     priority: 100
-    done: false
-    blocked: false
-    blocked_reason: ""
+    status: todo
+    requires: []
     acceptance:
       - "docs/ contains architecture.md, database.md, and api.md outlining architectural approach for the project"
       - "CLAUDE.md is updated so future iterations are aware of the new docs if they need to reference them"
