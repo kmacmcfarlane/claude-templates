@@ -6,12 +6,14 @@ services:
     user: "${UID:-1000}:${GID:-1000}"
     volumes:
       - ./backend:/build
-      - ./data:/build/data
+      - backend_dev_data:/build/data
       - backend_go_cache:/home/gouser/.cache/go-build
+      - backend_go_mod_cache:/home/gouser/go/pkg/mod
     environment:
       - PORT=8080
-      - GOPATH=/go
+      - GOPATH=/home/gouser/go
       - GOCACHE=/home/gouser/.cache/go-build
+      - GOMODCACHE=/home/gouser/go/pkg/mod
 
   frontend:
     build:
@@ -23,4 +25,6 @@ services:
 
 volumes:
   frontend_node_modules:
+  backend_dev_data:
   backend_go_cache:
+  backend_go_mod_cache:

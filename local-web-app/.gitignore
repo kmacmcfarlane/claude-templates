@@ -25,6 +25,7 @@ backend/internal/api/gen/
 
 # Test coverage
 coverage/
+backend/coverprofile.out
 
 # SQLite database files
 *.db
@@ -41,3 +42,12 @@ data/
 # Logs
 *.log
 logs/
+
+# Dataset placeholder for Docker Compose
+.dataset-placeholder/
+
+# Local config (gitignored; use config.yaml.example as template)
+config.yaml
+
+# Claude sandbox local mounts (gitignored; use .claude-sandbox.example.yaml as template)
+.claude-sandbox.yaml
