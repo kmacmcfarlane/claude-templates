@@ -1,4 +1,4 @@
-.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-once ralph-auto-resume ralph-auto-resume-once up down logs up-dev down-dev logs-dev test-frontend test-frontend-watch test-backend test-backend-watch
+.PHONY: claude claude-resume ralph ralph-resume ralph-auto ralph-auto-resume ralph-auto-debug ralph-debug capture-runtime-context up down logs up-dev down-dev logs-dev test-frontend-watch test-backend-watch
 
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
@@ -9,16 +9,16 @@ claude-resume:
 	claude-sandbox --resume
 
 ralph:
-	claude-sandbox --ralph --interactive
+	claude-sandbox --ralph --interactive ${ARGS}
 
 ralph-resume:
-	claude-sandbox --ralph --interactive --resume
+	claude-sandbox --ralph --interactive --resume ${ARGS}
 
 ralph-auto:
-	claude-sandbox --ralph --dangerously-skip-permissions
+	claude-sandbox --ralph --dangerously-skip-permissions ${ARGS}
 
 ralph-auto-once:
-	claude-sandbox --ralph --dangerously-skip-permissions --limit 1
+	claude-sandbox --ralph --dangerously-skip-permissions --limit 1 ${ARGS}
 
 # make ralph-auto-resume ARGS="<resume id>"
 ralph-auto-resume:
@@ -27,6 +27,19 @@ ralph-auto-resume:
 # make ralph-auto-resume-once ARGS="<resume id>"
 ralph-auto-resume-once:
 	claude-sandbox --ralph --dangerously-skip-permissions --limit 1 --resume ${ARGS}
+
+# Debug: run the normal story pipeline with full decision logging (autonomous, single pass).
+# After the run, review .ralph-debug/ for the full decision trail of every agent.
+ralph-auto-debug:
+	claude-sandbox --ralph --dangerously-skip-permissions --log-context --limit 1 ${ARGS}
+
+# Debug: interactive version with full decision logging
+ralph-debug:
+	claude-sandbox --ralph --interactive --log-context ${ARGS}
+
+# Capture runtime context snapshot (container logs, errors) to .debug-context
+capture-runtime-context:
+	./scripts/capture-runtime-context.sh
 
 up:
 	docker compose up -d --build
