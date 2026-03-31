@@ -178,6 +178,21 @@ Avoid:
     - `npm run test:watch`
     - Root target `make test-frontend-watch` runs this inside docker dev workflow.
 
+### 3.7 Auto-unmount
+All frontend test files must use `enableAutoUnmount(afterEach)` from `@vue/test-utils`, either in each test file or in a shared vitest setup file. This prevents test interference from stale event listeners when `wrapper.unmount()` is not called explicitly.
+
+### 3.8 localStorage isolation
+A global `beforeEach` in the vitest setup file must call `localStorage.clear()` to prevent cross-test contamination. Do not rely on individual test files to clear localStorage.
+
+### 3.9 Nested component mock ordering
+When a parent and child component both call the same API on mount, the test mock setup must account for both calls in the correct order. Document the expected call sequence in test comments when mock ordering is non-obvious.
+
+### 3.10 Naive UI prop casing
+Naive UI template attributes use kebab-case (e.g., `consistent-menu-width`) but Vue props in test assertions use camelCase (e.g., `consistentMenuWidth`). Always use camelCase when asserting on component props in tests.
+
+### 3.11 Security Audit
+If `npm audit` shows any high-severity vulnerabilities, fail the QA cycle and have the developer upgrade the vulnerable packages.
+
 ## 4) Cross-cutting test policies
 
 ### 4.1 Fixtures and test data
@@ -205,7 +220,7 @@ Integration tests must still avoid real provider calls.
 
 ## 5) QA subagent integration
 
-The QA expert subagent (/.claude/agents/qa-expert.md) is the final gate before a story is marked `status: done`. It verifies:
+The QA expert subagent (/.claude/agents/qa-expert.md) is the final gate before a story is marked `status: uat`. It verifies:
 
 ### 5.1 Test execution
 - All backend tests pass (`make test-backend`)
@@ -263,7 +278,7 @@ After completing sections 5.5 (smoke test) and 5.6 (API endpoint verification), 
 4. For each error line found, classify it as one of:
    - **Expected**: Matches a pattern in `QA_ALLOWED_ERRORS.md`. Skip it.
    - **Bug**: An unexpected runtime error that indicates a defect. Report as a new bug ticket.
-   - **Improvement**: A non-critical issue suggesting a code improvement (e.g., noisy logging for recoverable conditions). Report as an IDEAS.md suggestion.
+   - **Improvement**: A non-critical issue suggesting a code improvement (e.g., noisy logging for recoverable conditions). Report as an idea in the appropriate `agent/ideas/` file.
 5. Report findings in the QA verdict using the structured format (see qa-expert.md).
 
 #### 5.7.2 Bug ticket fields

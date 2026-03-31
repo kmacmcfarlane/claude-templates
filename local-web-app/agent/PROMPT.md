@@ -13,20 +13,178 @@ Follow /agent/AGENT_FLOW.md exactly.
 
 ## Work selection
 
-Select work from /agent/backlog.yaml per the priority rules in AGENT_FLOW.md section 3:
-1. First: stories in `review` status → invoke code-reviewer subagent
-2. Second: stories in `testing` status → invoke qa-expert subagent
-3. Third: stories in `in_progress` with `review_feedback` → invoke fullstack-developer subagent
-4. Fourth: highest priority `todo` story → invoke fullstack-developer subagent
+Use `python3 scripts/backlog/backlog.py` (aliased below as `backlog.py`) to query and update the backlog. Select work per AGENT_FLOW.md section 3:
+
+```bash
+backlog.py next-work --format json
+```
+
+This returns the selected story with a `queue` field. Dispatch based on the queue value:
+- `testing` → invoke qa-expert subagent
+- `review` → invoke code-reviewer subagent
+- `in_progress` → invoke fullstack-developer subagent (if story has no branch yet, create one)
+- `uat_feedback` → set in_progress, create new branch from main, invoke fullstack-developer subagent (review_feedback is already set)
+- `todo` → set status to in_progress, invoke fullstack-developer subagent
+
+Exit code 2 means no eligible work — send discord notification (`💤 [project] No eligible stories — backlog is empty or fully blocked.`), touch `.ralph/stop` and exit.
+
+### Worktree-based parallel execution
+
+When running multiple agents in parallel, use worktrees for isolation. See AGENT_FLOW.md section 4.1.1 for details.
+
+```bash
+# Atomic claim + worktree creation
+STORY=$(backlog.py --repo-root /path/to/main next-work --claim worker-1 --format json)
+python3 scripts/worktree/worktree.py create <story-id>
+
+# At cycle start: detect stale worktrees
+python3 scripts/worktree/worktree.py detect-stale
+
+# After story completion: cleanup
+python3 scripts/worktree/worktree.py remove <story-id>
+
+# Recovery from dead process
+python3 scripts/worktree/worktree.py recover
+```
+
+### Docker compose isolation (worktrees)
+
+All compose commands from a worktree MUST set `STORY_ID` to activate story-scoped project names and ephemeral ports. See AGENT_FLOW.md section 4.1.2 for details.
+
+```bash
+# Set STORY_ID before any make target that uses compose
+export STORY_ID=S-042
+make test-backend    # Project: myproject-dev-s-042 (ephemeral ports)
+make test-e2e        # Shards: myproject-e2e-s-042-1, -2, etc.
+```
+
+### Merge conflict resolution (finalization)
+
+When merging a story branch to main, if conflicts occur:
+
+```bash
+# 1. Attempt merge
+git merge story/S-042 --no-edit
+
+# 2. If exit code != 0 (conflicts), run merge helper
+python3 scripts/worktree/merge_helper.py --repo-dir . --format json
+
+# 3. Parse JSON result:
+#    {"status": "resolved", ...}  → git commit to complete merge
+#    {"status": "unresolved", "unresolved": ["file.go", ...]}
+#       → git merge --abort
+#       → Set story to in_progress with review_feedback describing conflicts
+#       → Developer resolves, then normal review → QA cycle
+```
+
+Trivial files (CHANGELOG.md, backlog.yaml) are auto-resolved. Non-trivial conflicts (code files) require the fullstack developer. The story is NOT marked as blocked — it goes through the normal rework flow.
+
+## Story marker
+
+As soon as you select a story, emit an HTML comment so the user can identify the active story in the conversation:
+
+```
+<!-- story: [storyID] — [Story Title] -->
+```
+
+Replace the placeholders between square brackets with the actual story id (e.g. S-123) and story title from the backlog item being picked up.
+Emit this before any subagent dispatch or status change.
 
 ## Subagent dispatch
 
 Read the subagent prompt from `/.claude/agents/<name>.md` and invoke via the Task tool:
-- **fullstack-developer**: For `todo` and `in_progress` stories. Pass story ID, acceptance criteria, branch name, and any review_feedback. On success, extract the "Change Summary" section from the verdict and store it for downstream dispatch.
-- **code-reviewer**: For `review` stories. Pass story ID, acceptance criteria, branch name, and the **change summary** from the fullstack engineer. If no change summary is available, generate one from `git diff --name-only main..HEAD`.
-- **qa-expert**: For `testing` stories. Pass story ID, acceptance criteria, branch name, path to /agent/QA_ALLOWED_ERRORS.md, and the **change summary** from the fullstack engineer.
+- **fullstack-developer**: For `todo` and `in_progress` stories. Assemble a **developer brief** (see below) and invoke via the Task tool. Extract the **complexity** field from the story (via `backlog.py get`) and select the model: use `sonnet` for `low` complexity, `opus` for `medium` or `high` complexity. Default to `sonnet` if complexity is not set. On success, extract the "Change Summary" section from the verdict and store it for downstream dispatch. The developer writes and runs unit/integration tests only (`make test-backend`, `make test-frontend`). E2E tests are the QA agent's responsibility.
+
+**Orchestrator pre-reads**: Do NOT read story-related code files (source code, test files) before dispatching the developer. The developer has its own exploration tools (gopls, Grep, Read) and will read what it needs. Orchestrator pre-reads duplicate work — the story's `notes` field and acceptance criteria provide sufficient context for the developer brief. Reserve orchestrator reads for governance docs and backlog queries only.
+- **code-reviewer**: For `review` stories. Pass the **context bundle** (see below), story ID, acceptance criteria, branch name, and the **change summary** from the fullstack engineer. If no change summary is available, generate one from `git diff --name-only main..HEAD`. Extract the **complexity** field from the fullstack engineer's verdict and select the model accordingly: use `sonnet` for `low` complexity, `opus` for `medium` or `high` complexity. Default to `opus` if complexity is not reported. The reviewer verifies unit/integration tests pass. It does NOT run E2E tests.
+- **qa-expert**: For `testing` stories. Pass the **context bundle** (see below), story ID, acceptance criteria, branch name, path to QA allowed errors file (if one exists), and the **change summary** from the fullstack engineer. Extract the **complexity** field from the fullstack engineer's verdict and select the model accordingly: use `sonnet` for `low` or `medium` complexity, `opus` for `high` complexity. Default to `sonnet` if complexity is not reported. The QA agent is the sole owner of E2E tests — running, authoring, and maintaining them.
 - **debugger**: Invoke on demand when test failures or bugs are encountered.
 - **security-auditor**: Invoke on demand for security-sensitive stories.
+
+### Test responsibility boundaries
+
+| Agent | Unit/Integration tests | E2E tests |
+|-------|----------------------|-----------|
+| fullstack-developer | Writes and runs | Does not run or write |
+| code-reviewer | Verifies pass (`make test-backend` + `make test-frontend`) | Does not run |
+| qa-expert | Trusts code-reviewer (re-runs only if E2E failures suggest regression) | Sole owner: runs, writes, maintains |
+
+### Context bundle for downstream agents
+
+Before dispatching the code-reviewer or qa-expert, the orchestrator assembles a **context bundle** and includes it in the Agent prompt. This eliminates redundant file reads by subagents:
+
+1. **Diff output**: Run `git diff main` (includes both staged and unstaged changes). If the branch has commits ahead of main, use `git diff main..HEAD` instead. Include the full output in the prompt.
+2. **Change summary**: Extracted from the fullstack engineer's verdict (see section below). Format as a bullet list of file paths with descriptions.
+3. **Governance docs**: Include the full contents of:
+   - `/agent/PRD.md`
+   - `/agent/TEST_PRACTICES.md`
+   - `/agent/DEVELOPMENT_PRACTICES.md`
+
+Wrap each governance doc in a labeled section so the subagent can reference it:
+
+```
+--- BEGIN PRD.md ---
+<contents>
+--- END PRD.md ---
+
+--- BEGIN TEST_PRACTICES.md ---
+<contents>
+--- END TEST_PRACTICES.md ---
+
+--- BEGIN DEVELOPMENT_PRACTICES.md ---
+<contents>
+--- END DEVELOPMENT_PRACTICES.md ---
+
+--- BEGIN DIFF (git diff main) ---
+<diff output>
+--- END DIFF ---
+```
+
+The orchestrator already reads these files at startup, so this adds no extra file reads — it just passes the content it already has.
+
+### Developer brief
+
+Before dispatching the fullstack-developer, assemble a **developer brief** and include it in the Agent prompt. This gives the developer the same governance context that the reviewer and QA expert receive, eliminating redundant file reads:
+
+1. **Story metadata**: ID, title, branch name, complexity (from `backlog.py get <id>`), queue
+2. **Acceptance criteria**: From `backlog.py get <id>`
+3. **Notes**: From `backlog.py get <id>` (if present — may contain design context, root cause, or implementation hints)
+4. **Review feedback**: If returning from review/QA (from `review_feedback` field)
+5. **Constraints reminder**: E2E tests are QA's responsibility; do not modify gen/ or mocks
+6. **Governance docs**: Same format as the context bundle — full contents of PRD.md, DEVELOPMENT_PRACTICES.md, TEST_PRACTICES.md
+
+Format in the Agent prompt:
+
+```
+## Story Brief
+
+**Story**: <id> — <title>
+**Branch**: <branch>
+**Complexity**: <complexity from backlog, or "not set">
+**Review feedback**: <if any, or "None">
+
+### Acceptance Criteria
+<from backlog>
+
+### Notes
+<from backlog, or "None">
+
+### Constraints
+- E2E tests are QA's responsibility — do NOT run `make test-e2e` (without SPEC=)
+- Do NOT modify files under internal/api/gen or **/mocks
+
+--- BEGIN PRD.md ---
+<contents>
+--- END PRD.md ---
+
+--- BEGIN DEVELOPMENT_PRACTICES.md ---
+<contents>
+--- END DEVELOPMENT_PRACTICES.md ---
+
+--- BEGIN TEST_PRACTICES.md ---
+<contents>
+--- END TEST_PRACTICES.md ---
+```
 
 ### Change summary passthrough
 
@@ -40,52 +198,60 @@ Change summary (from fullstack engineer):
 
 This helps downstream agents orient faster. If the fullstack engineer's response lacks a change summary, fall back to `git diff --name-only main..HEAD` for the file list.
 
-## Timing instrumentation
-
-Record timestamps before and after each subagent dispatch per AGENT_FLOW.md section 4.3.1. Use `date +%Y-%m-%dT%H:%M:%S%z` to capture wall-clock times. Include elapsed time in both the orchestrator debug log and the summary file.
-
 ## Status management
 
-After each subagent completes, update /agent/backlog.yaml:
-- Fullstack engineer success → set `status: review`, clear `review_feedback`
-- Code reviewer approved → set `status: testing`
-- Code reviewer rejected → set `status: in_progress`, record `review_feedback`
-- QA expert approved → set `status: done`, then process sweep findings (see below)
-- QA expert rejected → set `status: in_progress`, record `review_feedback`, then process sweep findings (see below)
+After each subagent completes, update backlog via `backlog.py`:
+- Fullstack engineer success → `backlog.py set <id> status review` + `backlog.py clear <id> review_feedback`
+- Code reviewer approved → `backlog.py set <id> status testing`
+- Code reviewer rejected → `backlog.py set <id> status in_progress` + `echo "<feedback>" | backlog.py set-text <id> review_feedback`
+- QA expert approved → `backlog.py set <id> status uat`, then process sweep findings (see below)
+- QA expert rejected → `backlog.py set <id> status in_progress` + `echo "<feedback>" | backlog.py set-text <id> review_feedback`, then process sweep findings (see below)
+
+Note: Agents never set `status: done`. The user manually moves stories from `uat` to `done` after acceptance.
+
+**Discord notifications (MANDATORY):** After every status change above, send a discord notification via `mcp__discord__send_discord_notification` using the message format and emojis defined in AGENT_FLOW.md section 9.2. Also send notifications when: no eligible work remains (section 9.3), and after committing/merging to main (section 9.3). Notifications are best-effort — if the tool fails, continue normally.
 
 ### Processing QA sweep findings
 
 After handling the QA story verdict (approved or rejected), check the QA verdict for a "Runtime Error Sweep" section:
 
 1. If sweep result is `FINDINGS`:
-   - For each "New bug ticket": determine next `B-NNN` ID (scan backlog.yaml for highest B- number and increment), add to backlog.yaml with QA-suggested fields (title, priority, acceptance, testing, notes with log evidence).
-   - For each "Improvement idea": append to /agent/IDEAS.md and send a discord notification:
-     `[project] New ideas from qa-expert sweep: <title> — <brief description>, <title> — <brief description>.`
+   - For each "New bug ticket": get next ID via `backlog.py next-id B`, then pipe the ticket YAML to `backlog.py add` (see AGENT_FLOW.md section 4.4.1 for the template).
+   - For each "Improvement idea": route to the appropriate file under `/agent/ideas/` (see "Processing process improvement ideas" below for routing rules). Include `* status: needs_approval`, `* priority: <value>` (using the priority suggested by QA), and `* source: qa`, then send a discord notification:
+     `💡 [project] New ideas from qa-expert sweep: <title> — <brief description>, <title> — <brief description>.`
    - If any bug tickets were filed, send a discord notification:
-     `[project] QA sweep: filed N new ticket(s): B-NNN (title — brief description), ... See backlog.yaml.`
+     `🐛 [project] QA sweep: filed N new ticket(s): B-NNN (title — brief description), ... See backlog.yaml.`
 2. If sweep result is `CLEAN` or absent: no action needed.
-3. Include new backlog.yaml entries and IDEAS.md updates in the story's commit.
+3. Include new backlog.yaml entries and agent/ideas/ updates in the story's commit.
 
 ### Processing process improvement ideas (MANDATORY Discord notification)
 
 After every subagent completes (fullstack-developer, qa-expert), check its response for a "Process Improvements" section. If present:
 
-1. For each idea under `Features`, `Dev Ops`, or `Workflow`, append it to the matching section in /agent/IDEAS.md (format: `### <title>\n<description>`).
-2. **MUST send a discord notification** summarizing ALL new ideas added to IDEAS.md:
-   `[project] New ideas from <agent-name>: <title> — <brief description>, <title> — <brief description>.`
+1. Route each idea to the appropriate file under `/agent/ideas/`:
+   - `Features` (net-new capabilities) → `agent/ideas/new_features.md`
+   - `Features` (improvements to existing) → `agent/ideas/enhancements.md`
+   - `Dev Ops` → `agent/ideas/devops.md`
+   - `Workflow` → `agent/ideas/agent_workflow.md`
+   - Testing infrastructure → `agent/ideas/testing.md`
+   Format: `### <title>\n* status: needs_approval\n* priority: <value>\n* source: <developer|reviewer|qa|orchestrator>\n<description>`. Use the priority suggested by the subagent. The source maps from the subagent name: fullstack-developer → `developer`, code-reviewer → `reviewer`, qa-expert → `qa`.
+2. **MUST send a discord notification** summarizing ALL new ideas added to agent/ideas/:
+   `💡 [project] New ideas from <agent-name>: <title> — <brief description>, <title> — <brief description>.`
 3. Skip any category marked "None".
 
-Every addition to IDEAS.md (whether from process improvements, QA sweep findings, or any other source) MUST trigger a Discord notification so the user is aware of new suggestions.
+Every addition to agent/ideas/ (whether from process improvements, QA sweep findings, or any other source) MUST trigger a Discord notification so the user is aware of new suggestions.
 
-## Completion conditions for a story
+## Completion conditions for a story (agent-driven, reaching `uat`)
 
 - All acceptance criteria satisfied
 - Tests required by the story are added/updated and pass locally
-- /CHANGELOG.md updated
 - Code review passed (code-reviewer approved)
 - QA testing passed (qa-expert approved)
-- /agent/backlog.yaml updated (`status: done` only when all gates pass and user approval has been given)
-- Suggest a commit message in format: story(<id>): <title> (unless AGENT_FLOW/backlog explicitly overrides)
+- /CHANGELOG.md updated (orchestrator responsibility at finalization — see AGENT_FLOW 4.5)
+- Backlog updated via `backlog.py set <id> status uat` when all gates pass
+- Committed and merged to main with message format: story(<id>): <title> (unless AGENT_FLOW/backlog explicitly overrides)
+
+Note: `uat` → `done` is a user action. Agents never set `status: done`.
 
 ## Constraints
 
@@ -94,10 +260,11 @@ Every addition to IDEAS.md (whether from process improvements, QA sweep findings
 
 ## Stop conditions
 
-- If no eligible stories remain across any queue, make no changes, touch the stop file and exit.
-- If blocked, record a concrete blocked_reason in /agent/backlog.yaml and exit.
+- After a story reaches `uat` and is committed/merged to main, send discord notification (`📦 [project] <id>: Committed and merged to main.`) and exit immediately. Do NOT call `next-work` again — each iteration handles exactly one story. Ralph will start a fresh iteration for the next story.
+- If no eligible stories remain across any queue, make no changes, touch the stop file and exit. Note: `uat` stories are not eligible work — they are waiting for user acceptance. Only `uat_feedback` stories (with feedback in `review_feedback`) are eligible.
+- If blocked, record via `backlog.py set <id> status blocked` + `echo "<reason>" | backlog.py set-text <id> blocked_reason` and exit.
 
 How to stop:
-- Touch `.ralph.stop` to signal stopping the ralph loop (only if no eligible stories remain).
+- Touch `.ralph/stop` to signal stopping the ralph loop (only if no eligible stories remain).
 
 Never claim completion unless the above conditions are met.

@@ -73,6 +73,7 @@ Within `/frontend`:
 - `src/stores/`  state management (if used).
 - `src/lib/`  shared utilities (markdown rendering, formatting).
 - `src/types/`  shared TS types (or `src/api/types`).
+- Shared component types (interfaces used across multiple components) must be exported from dedicated `types.ts` files in the relevant directory, not from `.vue` files. This keeps imports clean and avoids circular dependencies.
 
 ## 3) Backend (Go) practices
 
@@ -116,7 +117,7 @@ Within `/frontend`:
   - `debug`: Intermediate values inside functions (e.g., values returned from store/service calls). Always log these inside the callee, not at the call site.
   - `info`: Data writes to stores, files, or external systems.
   - `error`: When an error occurs.
-- Always use the `WithField()` or `WithFields()` builder pattern for contextual information (e.g., request ID, training run name, checkpoint filename, preset ID).
+- Always use the `WithField()` or `WithFields()` builder pattern for contextual information (e.g., request ID, entity name, resource path, record ID).
 - Never log secrets (tokens, passwords, auth headers) per section 1.5.
 - Logging inside callees: Log the result of a function inside the function itself, not where it is called. This keeps logging responsibilities localized.
 
@@ -199,6 +200,34 @@ func (s *PresetService) Create(name string, mapping model.PresetMapping) (model.
 ### 4.6 Lint and format
 - Enforce linting and formatting consistently (ESLint/Prettier or equivalent).
 - No formatting churn unrelated to a story.
+
+### 4.7 Frontend Verification
+
+#### 4.7.1 Linting
+The developer must run `npm run lint` (or equivalent) as part of implementation verification before submitting for review. This catches TypeScript type errors and ESLint issues before they reach the review or QA phase. The code reviewer must also verify lint passes.
+
+### 4.8 CSS variable usage
+Use the project's canonical CSS variables for all color properties. Do not use hard-coded color values. Define canonical variables (e.g., `--text-color`, `--bg-color`, `--accent-color`, `--border-color`) in `App.vue` and adapt to light/dark theme. When adding new UI elements, always use these variables rather than Naive UI's internal color tokens or raw hex values.
+
+### 4.9 Emit contract documentation
+Vue components using `defineEmits` must include a brief contract comment describing each event, its payload, and when it fires. This helps agents integrating the component understand the event API without reading the full implementation.
+
+### 4.10 Capture-phase keyboard event handlers
+
+When two components both attach `document.addEventListener('keydown', ...)` and the inner component must intercept the same key before the outer one fires, use capture-phase registration combined with `stopImmediatePropagation`.
+
+The browser dispatches every keyboard event in two passes:
+1. **Capture phase** (top → target): listeners registered with `{ capture: true }` fire first
+2. **Bubble phase** (target → top): listeners registered without `capture` (the default) fire second
+
+Use capture-phase + `stopImmediatePropagation` when:
+- A foreground overlay (modal, lightbox, drawer) must exclusively own certain keyboard shortcuts while it is open.
+- A background component also listens for the same keys at document level.
+
+Do not use this pattern for:
+- Simple single-component keyboard handling — use Vue `@keydown` template bindings.
+- Cases where multiple components should share a key simultaneously.
+- Element-scoped listeners that naturally scope to an element's subtree.
 
 ## 5) Docker and dev workflow practices
 
