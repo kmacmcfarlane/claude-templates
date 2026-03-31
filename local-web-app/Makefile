@@ -3,39 +3,39 @@
 COMPOSE_DEV = docker compose -f docker-compose.yml -f docker-compose.dev.yml
 
 claude:
-	claude-sandbox
+	claude-sandbox --docker-socket
 
 claude-resume:
-	claude-sandbox --resume
+	claude-sandbox --docker-socket --resume
 
 ralph:
-	claude-sandbox --ralph --interactive ${ARGS}
+	claude-sandbox --docker-socket --ralph --interactive ${ARGS}
 
 ralph-resume:
-	claude-sandbox --ralph --interactive --resume ${ARGS}
+	claude-sandbox --docker-socket --ralph --interactive --resume ${ARGS}
 
 ralph-auto:
-	claude-sandbox --ralph --dangerously-skip-permissions ${ARGS}
+	claude-sandbox --docker-socket --ralph --dangerously-skip-permissions ${ARGS}
 
 ralph-auto-once:
-	claude-sandbox --ralph --dangerously-skip-permissions --limit 1 ${ARGS}
+	claude-sandbox --docker-socket --ralph --dangerously-skip-permissions --limit 1 ${ARGS}
 
 # make ralph-auto-resume ARGS="<resume id>"
 ralph-auto-resume:
-	claude-sandbox --ralph --dangerously-skip-permissions --resume ${ARGS}
+	claude-sandbox --docker-socket --ralph --dangerously-skip-permissions --resume ${ARGS}
 
 # make ralph-auto-resume-once ARGS="<resume id>"
 ralph-auto-resume-once:
-	claude-sandbox --ralph --dangerously-skip-permissions --limit 1 --resume ${ARGS}
+	claude-sandbox --docker-socket --ralph --dangerously-skip-permissions --limit 1 --resume ${ARGS}
 
 # Debug: run the normal story pipeline with full decision logging (autonomous, single pass).
 # After the run, review .ralph-debug/ for the full decision trail of every agent.
 ralph-auto-debug:
-	claude-sandbox --ralph --dangerously-skip-permissions --log-context --limit 1 ${ARGS}
+	claude-sandbox --docker-socket --ralph --dangerously-skip-permissions --log-context --limit 1 ${ARGS}
 
 # Debug: interactive version with full decision logging
 ralph-debug:
-	claude-sandbox --ralph --interactive --log-context ${ARGS}
+	claude-sandbox --docker-socket --ralph --interactive --log-context ${ARGS}
 
 # Capture runtime context snapshot (container logs, errors) to .debug-context
 capture-runtime-context:
