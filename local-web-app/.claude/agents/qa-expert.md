@@ -19,6 +19,7 @@ Steps:
 1. Read the change summary to understand what changed and where tests should exist
 2. Review existing test coverage against acceptance criteria
 3. Unit/integration tests: The code-reviewer has already verified that `make test-backend` and `make test-frontend` pass. Do NOT re-run them unless E2E failures suggest a unit-level regression.
+3a. For stories with frontend changes, run `cd frontend && npx vue-tsc --noEmit` and verify **zero TypeScript errors**. If TS errors exist, reject the ticket back to the developer. The code reviewer should have caught this, but QA is the final gate.
 4. Run E2E tests (`make test-e2e`) — run the full suite **exactly once**. This is the primary smoke test AND the E2E gate. Record results per the E2E Test Results section below. Do NOT run the full suite more than once.
 5. Triage any E2E failures (see E2E failure triage below). The developer is responsible for writing E2E tests — if coverage is missing, reject with feedback requesting the developer add E2E tests.
 6. Perform runtime error sweep per TEST_PRACTICES.md section 5.7
@@ -74,6 +75,18 @@ Running the full E2E suite takes ~5 minutes per run. Use this strategy to reduce
 
 This means a typical cycle with fixes is: full run → N targeted runs → full run (2 full runs + N fast runs), instead of N+2 full runs.
 
+## QA iteration limit (MANDATORY)
+
+Track how many times a story has been through the QA cycle. The orchestrator passes the QA cycle count in the dispatch context (check for `review_feedback` -- each round of feedback from QA represents one prior cycle).
+
+- **Cycles 1-2**: Normal operation. If the story fails, set verdict to REJECTED with detailed feedback.
+- **Cycle 3+** (story has already been rejected by QA twice and still fails): Set verdict to **BLOCKED** instead of REJECTED. Include in the verdict:
+  - A summary of the persistent failures across all cycles
+  - Why the failures could not be resolved after multiple attempts
+  - Suggested next steps (e.g., "requires manual debugging", "architecture issue", "test infrastructure problem")
+
+This prevents infinite rejection loops where a story bounces between `in_progress` and `testing` without resolution. The orchestrator will set `status: blocked` with a `blocked_reason` derived from your verdict.
+
 ## E2E failure triage
 
 When E2E tests fail, you MUST triage each failure before reporting:
@@ -85,8 +98,9 @@ When E2E tests fail, you MUST triage each failure before reporting:
 - E2E failures that are story-related and unresolved ARE blocking: do not approve the story until they are resolved.
 
 **Pre-existing / unrelated failures** (the failing test covers a user journey NOT touched by this story):
-- Do not reject the story for these failures.
+- Do not reject the story for the unrelated failure itself, but the E2E gate still requires zero failures.
 - File each one as a structured bug ticket in the "New E2E bug tickets" section of your verdict (see format below). The orchestrator will create backlog entries from these.
+- You MUST fix the underlying issue or correct the test so the E2E suite passes with zero failures. Skipping, disabling, or tolerating failures is not permitted. There is no concept of "known failures" -- every failure must be resolved before the story can be approved.
 - Include: the failing test name and file, the error output (truncated to the key assertion failure), a root cause hypothesis, suggested priority, and suggested acceptance criteria.
 
 ## E2E test authoring (REQUIRED for uncovered acceptance criteria — story-scoped)
@@ -131,13 +145,14 @@ When returning your verdict, use this structure. The orchestrator parses it to d
 ## QA Verdict
 
 ### Story: <story-id>
-### Result: APPROVED | REJECTED
+### Result: APPROVED | REJECTED | BLOCKED
 
 ### Story Verification Summary
 <Brief summary of which acceptance criteria were verified and how>
 
-### Issues (if REJECTED)
-<List of issues that caused rejection, with severity: blocker | important | minor>
+### Issues (if REJECTED or BLOCKED)
+<List of issues that caused rejection/blocking, with severity: blocker | important | minor>
+<For BLOCKED: include summary of persistent failures across all QA cycles and why they could not be resolved>
 
 ## E2E Test Results
 
@@ -147,7 +162,7 @@ When returning your verdict, use this structure. The orchestrator parses it to d
 - **Tests failed**: <number>
 - **Notes**: <any relevant details — e.g., which tests failed, triage outcome for each failure, whether this story added/modified E2E tests>
 
-### New E2E bug tickets (for orchestrator — pre-existing/unrelated failures only):
+### New E2E bug tickets (for orchestrator — unrelated failures only):
 - **Title**: <brief title including the failing test and component>
   **Failing test**: `<spec file path> > <test name>`
   **Error output**: `<key assertion failure line>`
@@ -159,7 +174,7 @@ When returning your verdict, use this structure. The orchestrator parses it to d
   **Suggested testing**:
     - "command: make test-e2e"
 
-(Repeat for each pre-existing/unrelated failure, or "None" if all failures were story-related or there were no failures)
+(Repeat for each unrelated failure, or "None" if all failures were story-related or there were no failures)
 
 ## Runtime Error Sweep
 

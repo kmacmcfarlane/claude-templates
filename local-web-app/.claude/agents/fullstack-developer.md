@@ -77,6 +77,16 @@ Format:
 - **<file path>**: <1-sentence description of what changed>
 ```
 
+Example:
+
+```
+## Change Summary
+
+- **frontend/src/components/WidgetEditor.vue**: Added defineEmits with widget-saved and widget-deleted events
+- **frontend/src/components/WidgetDialog.vue**: Added "Manage Widgets" button, nested NModal with WidgetEditor, event handlers for refresh/auto-select
+- **frontend/src/components/__tests__/WidgetDialog.test.ts**: 4 new integration tests for widget editor modal
+```
+
 Rules:
 - List ONLY files you actually modified (not files you only read)
 - Keep descriptions concise — one sentence per file
