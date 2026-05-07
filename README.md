@@ -12,10 +12,11 @@ Each template is a self-contained directory with everything needed to bootstrap 
 
 ## Usage
 
-1. Copy the template directory into a new repo.
+1. Copy the template directory into a new repo (or use the `/new-project-from-template` skill).
 2. Search and replace placeholder values (see the template's README for specifics).
-3. Write your PRD in `agent/PRD.md` and add stories to `agent/backlog.yaml`.
-4. Run `make up` to start the stack.
+3. Install the `claude-kit` plugin: `/plugin install claude-kit@mcfacehead`
+4. Write your PRD in `agent/PRD.md` and add stories to `agent/backlog.yaml`.
+5. Run `make up` to start the stack.
 
 ## What's included in each template
 
@@ -27,11 +28,16 @@ Each template is a self-contained directory with everything needed to bootstrap 
 - **Docker Compose** -- Production and dev-mode with hot reload
 - **Makefiles** -- Root orchestration and per-stack build targets
 
+## What's NOT included
+
+- **Skills** -- Development workflow skills come from the `claude-kit` plugin (installed via the mcfacehead marketplace). Templates do not ship skill definitions.
+
 ## Prerequisites
 
 - Docker and Docker Compose
 - [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox) (optional, for sandboxed Claude Code sessions)
+- [claude-plugins](https://github.com/kmacmcfarlane/claude-plugins) `claude-kit` plugin (for backlog management, testing, and workflow skills)
 
 ## Part of kmac-claude-kit
 
-This repo is one component of [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit), a toolkit for building software with Claude Code. See that repo for how claude-templates, [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox), and [claude-skills](https://github.com/kmacmcfarlane/claude-skills) fit together.
+This repo is one component of [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit), a toolkit for building software with Claude Code. See that repo for how claude-templates, [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox), and [claude-plugins](https://github.com/kmacmcfarlane/claude-plugins) fit together.
