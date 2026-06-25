@@ -15,3 +15,8 @@ mounts: []
   # - host: /data/datasets
   #   container: /mnt/data
   #   writable: true
+
+# How the .claude-sandbox/ dir is version-controlled (the new-project skill asks):
+#   false (default): foreign-safe — gitignore /.claude-sandbox/ + internal sidecar repo.
+#   true: own project — host tracks the dir (env/temp/ralph stay gitignored).
+# trackInHost: true

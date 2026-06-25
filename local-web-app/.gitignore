@@ -6,7 +6,7 @@
 !.claude/settings.json
 !.claude/agents/
 !.claude/skills/
-.ralph/
+.claude-sandbox/ralph/
 .ralph.stop
 
 # OS
@@ -40,7 +40,7 @@ data/
 .env
 .env.*
 !.env.example
-!.env.claude-sandbox.example
+!.claude-sandbox/env.example
 
 # Logs
 *.log
@@ -53,7 +53,7 @@ logs/
 config.yaml
 
 # Claude sandbox local mounts (gitignored; use .claude-sandbox.example.yaml as template)
-.claude-sandbox.yaml
+.claude-sandbox/config.yaml
 
 # Worktrees (ephemeral local state for parallel agent execution)
 .worktrees/
