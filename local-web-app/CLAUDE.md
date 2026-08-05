@@ -62,7 +62,7 @@ Frontend never talks to providers. Frontend talks only to backend API.
 - Schema details in /docs/database.md. Full config schema in /agent/PRD.md.
 
 ## 6) Tooling ecosystem
-This project is part of the [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit) ecosystem:
+This project is part of the [claude-kit](https://github.com/kmacmcfarlane/claude-kit) ecosystem:
 - **claude-sandbox**: The Docker container this agent runs inside. See https://github.com/kmacmcfarlane/claude-sandbox
 - **claude-templates**: The template this project was scaffolded from. See https://github.com/kmacmcfarlane/claude-templates
 - **claude-plugins**: Plugin marketplace with reusable skills (claude-kit plugin). See https://github.com/kmacmcfarlane/claude-plugins

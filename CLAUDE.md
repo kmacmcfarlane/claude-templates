@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this repo is
 
-A **template library** for bootstrapping new projects designed to work with Claude Code. It is not a runnable application — it is a collection of self-contained project scaffolding directories. Part of the [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit) ecosystem alongside `claude-sandbox` and `claude-plugins`.
+A **template library** for bootstrapping new projects designed to work with Claude Code. It is not a runnable application — it is a collection of self-contained project scaffolding directories. Part of the [claude-kit](https://github.com/kmacmcfarlane/claude-kit) ecosystem alongside `claude-sandbox` and `claude-plugins`.
 
 ## Required Plugins
 

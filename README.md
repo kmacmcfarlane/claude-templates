@@ -38,6 +38,6 @@ Each template is a self-contained directory with everything needed to bootstrap 
 - [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox) (optional, for sandboxed Claude Code sessions)
 - [claude-plugins](https://github.com/kmacmcfarlane/claude-plugins) `claude-kit` plugin (for backlog management, testing, and workflow skills)
 
-## Part of kmac-claude-kit
+## Part of claude-kit
 
-This repo is one component of [kmac-claude-kit](https://github.com/kmacmcfarlane/kmac-claude-kit), a toolkit for building software with Claude Code. See that repo for how claude-templates, [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox), and [claude-plugins](https://github.com/kmacmcfarlane/claude-plugins) fit together.
+This repo is one component of [claude-kit](https://github.com/kmacmcfarlane/claude-kit), a toolkit for building software with Claude Code. See that repo for how claude-templates, [claude-sandbox](https://github.com/kmacmcfarlane/claude-sandbox), and [claude-plugins](https://github.com/kmacmcfarlane/claude-plugins) fit together.
