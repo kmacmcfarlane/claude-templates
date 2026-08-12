@@ -25,6 +25,22 @@ Never claim completion unless acceptance criteria are met and tests pass.
 3. **Surgical changes** — touch only what the task requires. Don't improve adjacent code, comments, or formatting. Remove only orphans YOUR changes created. Match existing style. Every changed line must trace to the request.
 4. **Goal-driven** — define verifiable success criteria before starting. Transform vague tasks ("fix the bug") into testable outcomes ("write a failing test, then make it pass"). Loop until verified.
 
+## 1.6) Comments
+
+Applies to every language and to prose docs (`README.md`, `CLAUDE.md`, skill docs). Comments are for what the code cannot say; default to none and earn each one.
+
+- **Say why, never what.** A comment that restates the line below it is noise. Rename the variable or extract the function instead — that fix cannot go stale.
+- **Write for the next reader, not for this session.** Never narrate the debugging you just did ("previously this returned nil", "I moved this up because the test failed"). Git blame and the ticket hold that. Keep it only if a future edit would otherwise reintroduce the bug — and then state the *constraint*, not the story.
+- **One canonical home per fact.** Document a rule where the rule lives (the shared helper, the CI anchor, the type) and leave call sites bare. A rule repeated at each call site is a set of copies that will drift.
+- **Keep the comment shorter than the code it explains.** One or two lines is normal. Anything longer needs a reason from the next rule; otherwise cut it.
+- **A long comment is usually a design signal.** If you feel the need to write a paragraph, question the solution first: the name may be wrong, the function may do two things, or a constraint may be implicit that could be enforced in code — a guard, a type, a test. Enforcing a constraint beats describing it. If the story genuinely matters after that, link the ticket rather than retelling it.
+- **Don't state what the code's presence already proves.** `apk add aws-cli` proves aws-cli was missing; a guard proves its condition is reachable; a retry proves the call is flaky. If deleting the line would delete the fact, the comment carries nothing.
+- **Do comment code that is genuinely hard to read** — convoluted for performance, an awkward API, a protocol constraint. But needing to is a smell: try making it clearer first. A comment is the last resort when the code cannot be simplified, not a substitute for simplifying it.
+- **"now", "no longer", "previously", "currently" are changelog tells.** A comment that only parses for someone who saw the previous version is a commit message in the wrong file.
+- **A wrong comment is worse than no comment.** When you change code, re-read the comments around it and delete any that no longer hold.
+- **No counts or inventories in prose.** "the four anchors that…", "~8 domains", "all three callers" — these are wrong the moment someone adds a fifth, and nothing fails when they drift. Name the thing or point at the source of truth.
+- **Worth the words:** an invariant a future edit would silently break; a non-obvious ordering or dependency constraint; a security or compliance rationale; a workaround for an external defect; godoc on exported identifiers. Link a ticket only when the why is genuinely unrecoverable from the code — not as a changelog.
+
 ## 2) Safety rules (non-negotiable)
 - Do not run destructive shell commands that affect anything outside of the project directory. No changes to the OS or underlying system.
 - Never exfiltrate secrets. Never print env vars. Never log tokens/keys/passwords.
